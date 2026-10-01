@@ -105,6 +105,8 @@ pub struct CosmicMapped {
     pub(super) resize_state: Arc<Mutex<Option<ResizeState>>>,
     pub last_geometry: Arc<Mutex<Option<Rectangle<i32, Local>>>>,
     pub moved_since_mapped: Arc<AtomicBool>,
+    /// Set while the window is maximized because it is the only tiled window
+    pub auto_maximized: Arc<AtomicBool>,
     pub floating_tiled: Arc<Mutex<Option<TiledCorners>>>,
     //sticky
     pub previous_layer: Arc<Mutex<Option<ManagedLayer>>>,
@@ -1078,6 +1080,7 @@ impl From<CosmicWindow> for CosmicMapped {
             resize_state: Arc::new(Mutex::new(None)),
             last_geometry: Arc::new(Mutex::new(None)),
             moved_since_mapped: Arc::new(AtomicBool::new(false)),
+            auto_maximized: Arc::new(AtomicBool::new(false)),
             floating_tiled: Arc::new(Mutex::new(None)),
             previous_layer: Arc::new(Mutex::new(None)),
             #[cfg(feature = "debug")]
@@ -1095,6 +1098,7 @@ impl From<CosmicStack> for CosmicMapped {
             resize_state: Arc::new(Mutex::new(None)),
             last_geometry: Arc::new(Mutex::new(None)),
             moved_since_mapped: Arc::new(AtomicBool::new(false)),
+            auto_maximized: Arc::new(AtomicBool::new(false)),
             floating_tiled: Arc::new(Mutex::new(None)),
             previous_layer: Arc::new(Mutex::new(None)),
             #[cfg(feature = "debug")]

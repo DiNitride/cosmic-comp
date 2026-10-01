@@ -1623,6 +1623,7 @@ impl Common {
             &self.xdg_activation_state,
             &mut self.workspace_state.update(),
         );
+        self.refresh_auto_maximize();
         self.popups.cleanup();
         self.toplevel_info_state.refresh(&self.workspace_state);
         self.refresh_idle_inhibit();
@@ -1664,6 +1665,52 @@ impl Common {
             })
         });
         self.idle_notifier_state.set_is_inhibited(is_inhibited);
+    }
+
+    /// Keeps a lone tiled window maximized, and restores it once a second window shows up.
+    fn refresh_auto_maximize(&mut self) {
+        let mut shell = self.shell.write();
+        let Some(seat) = shell.seats.iter().next().cloned() else {
+            return;
+        };
+
+        let mut maximize = Vec::new();
+        let mut unmaximize = Vec::new();
+        for workspace in shell.workspaces.spaces() {
+            if !workspace.tiling_enabled {
+                continue;
+            }
+            let windows = workspace.tiling_layer.all_windows();
+            for window in &windows {
+                if window.auto_maximized.load(Ordering::SeqCst) && !window.is_maximized(true) {
+                    // maximized state was dropped elsewhere
+                    window.auto_maximized.store(false, Ordering::SeqCst);
+                }
+            }
+            if windows.len() == 1 {
+                let window = &windows[0];
+                if !window.is_maximized(true) && !window.is_fullscreen(true) {
+                    maximize.push(window.clone());
+                }
+            } else {
+                unmaximize.extend(
+                    windows
+                        .into_iter()
+                        .filter(|w| w.auto_maximized.load(Ordering::SeqCst)),
+                );
+            }
+        }
+
+        for window in maximize {
+            shell.maximize_request(&window, &seat, true, &self.event_loop_handle);
+            if window.is_maximized(true) {
+                window.auto_maximized.store(true, Ordering::SeqCst);
+            }
+        }
+        for window in unmaximize {
+            window.auto_maximized.store(false, Ordering::SeqCst);
+            shell.unmaximize_request(&window);
+        }
     }
 
     #[profiling::function]

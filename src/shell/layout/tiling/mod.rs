@@ -3895,6 +3895,22 @@ impl TilingLayout {
         }
     }
 
+    /// All windows in the tree, regardless of their activation state.
+    pub fn all_windows(&self) -> Vec<CosmicMapped> {
+        let tree = &self.queue.trees.back().unwrap().0;
+        tree.root_node_id()
+            .map(|root| {
+                tree.traverse_pre_order(root)
+                    .unwrap()
+                    .filter_map(|node| match node.data() {
+                        Data::Mapped { mapped, .. } => Some(mapped.clone()),
+                        _ => None,
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     pub fn mapped(&self) -> impl Iterator<Item = (&CosmicMapped, Rectangle<i32, Local>)> {
         let tree = &self.queue.trees.back().unwrap().0;
         let iter = tree.root_node_id().map(|root| {
