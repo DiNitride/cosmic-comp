@@ -4783,7 +4783,9 @@ impl Shell {
 
         let maybe_window = workspace.focus_stack.get(seat).iter().next().cloned();
         if let Some(FocusTarget::Window(window)) = maybe_window {
-            let was_maximized = window.is_maximized(false);
+            // Check the element's own state: the active tab of a maximized stack
+            // may be a surface that was added later and isn't flagged maximized.
+            let was_maximized = window.maximized_state.lock().unwrap().is_some();
             if was_maximized {
                 workspace.unmaximize_request(&window);
             }
